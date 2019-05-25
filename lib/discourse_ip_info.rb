@@ -25,35 +25,24 @@ class DiscourseIpInfo
   end
 
   def self.mmdb_download(name)
+    FileUtils.mkdir_p(path)
+
     begin
-      FileUtils.mkdir_p(path)
+      gz_file = FileHelper.download(
+        "https://geolite.maxmind.com/geoip/databases/#{name}/update",
+        max_file_size: 100.megabytes,
+        tmp_file_name: "#{name}.gz"
+      )
 
-      uri = URI("https://geolite.maxmind.com/download/geoip/database/#{name}.tar.gz")
+      Discourse::Utils.execute_command("gunzip", gz_file.path)
 
-      tar_gz_file = Tempfile.new
-      tar_gz_file.binmode
-      tar_gz_file.write(Net::HTTP.get(uri))
-      tar_gz_file.close
-
-      dest = File.join(Dir.tmpdir, "maxmind_#{SecureRandom.hex}")
-      FileUtils.mkdir_p(dest)
-
-      Discourse::Utils.execute_command('tar', '-xzvf', tar_gz_file.path, "-C", dest)
-
-      Dir.glob("#{dest}/**/*.mmdb").each do |path|
-        if path.include?(name)
-          FileUtils.mv(path, mmdb_path(name))
-        else
-          Rails.logger.warn("Skipping unknown mmdb file during ip database update #{path}")
-        end
-      end
-
-    rescue => e
-      STDERR.puts("There was an error downloading MaxMindDB (#{name}): #{e}")
-    ensure
-      FileUtils.rm_rf(dest) if dest
-      FileUtils.rm(tar_gz_file) if tar_gz_file
+      path = gz_file.path.sub(/\.gz\z/, "")
+      FileUtils.mv(path, mmdb_path(name))
+    rescue OpenURI::HTTPError => e
+      Rails.logger.warn("MaxMindDB (#{name}) could not be downloaded: #{e}")
     end
+  ensure
+    gz_file&.close!
   end
 
   def mmdb_load(filepath)
