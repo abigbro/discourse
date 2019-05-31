@@ -27,20 +27,18 @@ class DiscourseIpInfo
   def self.mmdb_download(name)
     FileUtils.mkdir_p(path)
 
-    begin
-      gz_file = FileHelper.download(
-        "https://geolite.maxmind.com/geoip/databases/#{name}/update",
-        max_file_size: 100.megabytes,
-        tmp_file_name: "#{name}.gz"
-      )
+    gz_file = FileHelper.download(
+      "https://geolite.maxmind.com/geoip/databases/#{name}/update",
+      max_file_size: 100.megabytes,
+      tmp_file_name: "#{name}.gz",
+      validate_uri: false,
+      follow_redirect: false
+    )
 
-      Discourse::Utils.execute_command("gunzip", gz_file.path)
+    Discourse::Utils.execute_command("gunzip", gz_file.path)
 
-      path = gz_file.path.sub(/\.gz\z/, "")
-      FileUtils.mv(path, mmdb_path(name))
-    rescue OpenURI::HTTPError => e
-      Rails.logger.warn("MaxMindDB (#{name}) could not be downloaded: #{e}")
-    end
+    path = gz_file.path.sub(/\.gz\z/, "")
+    FileUtils.mv(path, mmdb_path(name))
   ensure
     gz_file&.close!
   end
@@ -52,7 +50,7 @@ class DiscourseIpInfo
       Rails.logger.warn("MaxMindDB (#{filepath}) could not be found: #{e}")
       nil
     rescue => e
-      Discourse.warn_exception(e, "MaxMindDB (#{filepath}) could not be loaded.")
+      Discourse.warn_exception(e, message: "MaxMindDB (#{filepath}) could not be loaded.")
       nil
     end
   end

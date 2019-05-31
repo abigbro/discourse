@@ -187,7 +187,7 @@ en:
 
     themes:
       default_description: "Default"
-      broken_theme_alert: "Theme/component %{theme} has errors which may prevent your site from working correctly! You can disable it at %{path}."
+      broken_theme_alert: "Your site may not work because theme / component %{theme} has errors. Disable it at %{path}."
 
     s3:
       regions:
@@ -392,7 +392,7 @@ en:
       title: "Review"
       topic: "Topic:"
       filtered_topic: "You have filtered to reviewable content in a single topic."
-      filtered_user: "User:"
+      filtered_user: "User"
       show_all_topics: "show all topics"
       deleted_post: "(post deleted)"
       deleted_user: "(user deleted)"
@@ -435,14 +435,14 @@ en:
 
       filters:
         type:
-          title: "Type:"
+          title: "Type"
           all: "(all types)"
         minimum_score: "Minimum Score:"
         refresh: "Refresh"
-        status: "Status:"
-        category: "Category:"
+        status: "Status"
+        category: "Category"
         priority:
-          title: "Minimum Priority:"
+          title: "Minimum Priority"
           low: "Low"
           medium: "Medium"
           high: "High"
@@ -803,6 +803,7 @@ en:
       allow_private_messages: "Allow other users to send me personal messages"
       external_links_in_new_tab: "Open all external links in a new tab"
       enable_quoting: "Enable quote reply for highlighted text"
+      enable_defer: "Enable defer to mark topics unread"
       change: "change"
       moderator: "{{user}} is a moderator"
       admin: "{{user}} is an admin"
@@ -1273,11 +1274,14 @@ en:
     too_few_topics_notice: "Let's <a href='https://blog.discourse.org/2014/08/building-a-discourse-community/'>get this discussion started!</a> There are currently <strong>%{currentTopics} / %{requiredTopics}</strong> topics. New visitors need some conversations to read and respond to."
     too_few_posts_notice: "Let's <a href='https://blog.discourse.org/2014/08/building-a-discourse-community/'>get this discussion started!</a> There are currently <strong>%{currentPosts} / %{requiredPosts}</strong> posts. New visitors need some conversations to read and respond to."
     logs_error_rate_notice:
-      reached: "<b>%{relativeAge}</b> – <a href='%{url}' target='_blank'>%{rate}</a> reached site setting limit of %{siteSettingRate}."
-      exceeded: "<b>%{relativeAge}</b> – <a href='%{url}' target='_blank'>%{rate}</a> exceeds site setting limit of %{siteSettingRate}."
-      rate:
-        one: "%{count} error/%{duration}"
-        other: "%{count} errors/%{duration}"
+      # keys ending with _MF use message format, see https://meta.discourse.org/t/message-format-support-for-localization/7035 for details
+      reached_hour_MF: "<b>{relativeAge}</b> – <a href='{url}' target='_blank'>{rate, plural, one {# error/hour} other {# errors/hour}}</a> reached site setting limit of {limit, plural, one {# error/hour} other {# errors/hour}}."
+      # keys ending with _MF use message format, see https://meta.discourse.org/t/message-format-support-for-localization/7035 for details
+      reached_minute_MF: "<b>{relativeAge}</b> – <a href='{url}' target='_blank'>{rate, plural, one {# error/minute} other {# errors/minute}}</a> reached site setting limit of {limit, plural, one {# error/minute} other {# errors/minute}}."
+      # keys ending with _MF use message format, see https://meta.discourse.org/t/message-format-support-for-localization/7035 for details
+      exceeded_hour_MF: "<b>{relativeAge}</b> – <a href='{url}' target='_blank'>{rate, plural, one {# error/hour} other {# errors/hour}}</a> exceeded site setting limit of {limit, plural, one {# error/hour} other {# errors/hour}}."
+      # keys ending with _MF use message format, see https://meta.discourse.org/t/message-format-support-for-localization/7035 for details
+      exceeded_minute_MF: "<b>{relativeAge}</b> – <a href='{url}' target='_blank'>{rate, plural, one {# error/minute} other {# errors/minute}}</a> exceeded site setting limit of {limit, plural, one {# error/minute} other {# errors/minute}}."
 
     learn_more: "learn more..."
 
@@ -1342,7 +1346,7 @@ en:
     search_hint: "username, email or IP address"
 
     create_account:
-      disclaimer: "By registering, you agree to the <a href='{{privacy_link}}'>privacy policy</a> and <a href='{{tos_link}}'>terms of service</a>."
+      disclaimer: "By registering, you agree to the <a href='{{privacy_link}}' target='blank'>privacy policy</a> and <a href='{{tos_link}}' target='blank'>terms of service</a>."
       title: "Create New Account"
       failed: "Something went wrong, perhaps this email is already registered, try the forgot password link"
 
@@ -1877,6 +1881,9 @@ en:
       edit_message:
         help: "Edit first post of the message"
         title: "Edit Message"
+      defer:
+        help: "Mark as unread"
+        title: "Defer"
       list: "Topics"
       new: "new topic"
       unread: "unread"
@@ -3876,6 +3883,7 @@ en:
         delete_posts_failed: "There was a problem deleting the posts."
         penalty_post_actions: "What would you like to do with the associated post?"
         penalty_post_delete: "Delete the post"
+        penalty_post_delete_replies: "Delete the post + any replies"
         penalty_post_edit: "Edit the post"
         penalty_post_none: "Do nothing"
         penalty_count: "Penalty Count"

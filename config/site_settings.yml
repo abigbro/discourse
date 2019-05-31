@@ -1534,12 +1534,6 @@ developer:
   enable_safe_mode:
     default: true
     client: true
-  refresh_maxmind_db_during_precompile_days:
-    min: 0
-    max: 120
-    default: 2
-    hidden: true
-    shadowed_by_global: true
 
 embedding:
   feed_polling_enabled:
@@ -1945,6 +1939,7 @@ user_preferences:
     default: 2
   default_other_external_links_in_new_tab: false
   default_other_enable_quoting: true
+  default_other_enable_defer: false
   default_other_dynamic_favicon: false
   default_other_like_notification_frequency:
     enum: "LikeNotificationFrequencySiteSetting"
@@ -2065,6 +2060,8 @@ tags:
     client: true
   remove_muted_tags_from_latest:
     default: false
+  mute_other_present_tags:
+    default: true
   force_lowercase_tags:
     default: true
     client: true

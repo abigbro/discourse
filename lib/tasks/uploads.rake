@@ -388,15 +388,17 @@ def migrate_to_s3
   synced = 0
   failed = []
 
+  skip_etag_verify = ENV["SKIP_ETAG_VERIFY"].present?
   local_files.each do |file|
     path = File.join("public", file)
     name = File.basename(path)
-    etag = Digest::MD5.file(path).hexdigest
+    etag = Digest::MD5.file(path).hexdigest unless skip_etag_verify
     key = file[file.index(prefix)..-1]
     key.prepend(folder) if bucket_has_folder_path
+    original_path = file.sub("uploads/#{db}", "")
 
-    if s3_object = s3_objects.find { |obj| file.ends_with?(obj.key) }
-      next if File.size(path) == s3_object.size && s3_object.etag[etag]
+    if s3_object = s3_objects.find { |obj| obj.key.ends_with?(original_path) }
+      next if File.size(path) == s3_object.size && (skip_etag_verify || s3_object.etag[etag])
     end
 
     options = {
@@ -415,6 +417,8 @@ def migrate_to_s3
           %Q{attachment; filename="#{upload.original_filename}"}
       end
     end
+
+    etag ||= Digest::MD5.file(path).hexdigest
 
     if dry_run
       puts "#{file} => #{options[:key]}"
@@ -632,11 +636,11 @@ def clean_up_uploads
 end
 
 ################################################################################
-#                                   missing                                    #
+#                                missing files                                 #
 ################################################################################
 
 # list all missing uploads and optimized images
-task "uploads:missing" => :environment do
+task "uploads:missing_files" => :environment do
   if ENV["RAILS_DB"]
     list_missing_uploads(skip_optimized: ENV['SKIP_OPTIMIZED'])
   else
@@ -663,6 +667,10 @@ end
 
 def list_missing_uploads(skip_optimized: false)
   Discourse.store.list_missing_uploads(skip_optimized: skip_optimized)
+end
+
+task "uploads:missing" => :environment do
+  Rake::Task["uploads:missing_files"].invoke
 end
 
 ################################################################################

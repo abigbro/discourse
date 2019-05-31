@@ -745,28 +745,30 @@ en:
   user_auth_tokens:
     browser:
       chrome: "Google Chrome"
-      safari: "Safari"
-      firefox: "Firefox"
-      opera: "Opera"
-      ie: "Internet Explorer"
-      edge: "Microsoft Edge"
       discoursehub: "DiscourseHub app"
+      edge: "Microsoft Edge"
+      firefox: "Firefox"
+      ie: "Internet Explorer"
+      opera: "Opera"
+      safari: "Safari"
       unknown: "unknown browser"
     device:
       android: "Android Device"
+      chromebook: "Chromebook"
       ipad: "iPad"
       iphone: "iPhone"
       ipod: "iPod"
-      mobile: "Mobile Device"
-      mac: "Mac"
       linux: "GNU/Linux Computer"
+      mac: "Mac"
+      mobile: "Mobile Device"
       windows: "Windows Computer"
       unknown: "unknown device"
     os:
       android: "Android"
+      chromeos: "ChromeOS"
       ios: "iOS"
-      macos: "macOS"
       linux: "Linux"
+      macos: "macOS"
       windows: "Microsoft Windows"
       unknown: "unknown operating system"
 
@@ -1388,9 +1390,9 @@ en:
     anon_polling_interval: "How often should anonymous clients poll in milliseconds"
     background_polling_interval: "How often should the clients poll in milliseconds (when the window is in the background)"
 
-    hide_post_sensitivity: "The likelyhood that a flagged post will be hidden"
-    silence_new_user_sensitivity: "The likelyhood that a new user will be silenced based on spam flags"
-    auto_close_topic_sensitivity: "The likelyhood that a flagged topic will be automatically closed"
+    hide_post_sensitivity: "The likelihood that a flagged post will be hidden"
+    silence_new_user_sensitivity: "The likelihood that a new user will be silenced based on spam flags"
+    auto_close_topic_sensitivity: "The likelihood that a flagged topic will be automatically closed"
 
     cooldown_minutes_after_hiding_posts: "Number of minutes a user must wait before they can edit a post hidden via community flagging"
 
@@ -1708,7 +1710,7 @@ en:
     max_image_megapixels: "Maximum number of megapixels allowed for an image."
 
     title_prettify: "Prevent common title typos and errors, including all caps, lowercase first character, multiple ! and ?, extra . at end, etc."
-    title_remove_extraneous_space: "Remove leading whitespaces in front of the end punctiation."
+    title_remove_extraneous_space: "Remove leading whitespaces in front of the end punctuation."
 
     topic_views_heat_low: "After this many views, the views field is slightly highlighted."
     topic_views_heat_medium: "After this many views, the views field is moderately highlighted."
@@ -1976,6 +1978,7 @@ en:
     default_other_notification_level_when_replying: "Global default notification level when the user replies to a topic."
     default_other_external_links_in_new_tab: "Open external links in a new tab by default."
     default_other_enable_quoting: "Enable quote reply for highlighted text by default."
+    default_other_enable_defer: "Enable defer topic functionality by default."
     default_other_dynamic_favicon: "Show new/updated topic count on browser icon by default."
 
     default_other_like_notification_frequency: "Notify users on likes by default"
@@ -2015,7 +2018,8 @@ en:
     allow_staff_to_tag_pms: "Allow staff members to tag any personal message"
     min_trust_level_to_tag_topics: "Minimum trust level required to tag topics"
     suppress_overlapping_tags_in_list: "If tags match exact words in topic titles, don't show the tag"
-    remove_muted_tags_from_latest: "Don't show topics tagged with muted tags in the latest topic list."
+    remove_muted_tags_from_latest: "Don't show topics tagged only with muted tags in the latest topic list."
+    mute_other_present_tags: "Don't show topics tagged with both muted and unmuted tags in the latest topic list."
     force_lowercase_tags: "Force all new tags to be entirely lowercase."
 
     company_name: "Company Name"
@@ -4330,6 +4334,17 @@ en:
       colors:
         title: "Theme"
 
+      themes_further_reading:
+        title: "Further reading for themes"
+        description:
+          "You can customize many aspects of your community's look-and-feel in just a few clicks (for example by adding a header or footer). Here is a useful list of resources to learn more about themes and theme components in Discourse:
+          <ul>
+          <li><a href='https://meta.discourse.org/t/91966' target='_blank'>Beginner's guide to creating themes and theme components</a></li>
+          <li><a href='https://meta.discourse.org/t/63682' target='_blank'>How do I install a theme or theme component?</a></li>
+          <li><a href='https://meta.discourse.org/t/110448' target='_blank'>Theme Developer Quick Reference Guide</a></li>
+          </ul>
+          And remember to visit the <a href='https://meta.discourse.org/c/theme' target='_blank'>#themes</a> category on <a href='https://meta.discourse.org' target='_blank'>meta.discourse.org</a> regularly to see the newest themes and components posted by staff and contributors."
+
       logos:
         title: "Logos"
         fields:
@@ -4420,9 +4435,9 @@ en:
       high: "High"
     sensitivity:
       disabled: "Disabled"
-      low: "Not Likely"
-      medium: "Somewhat Likely"
-      high: "Very Likely"
+      low: "Low"
+      medium: "Medium"
+      high: "High"
     must_claim: "You must claim items before acting on them."
     user_claimed: "This item has been claimed by another user."
     missing_version: "You must supply a version parameter"
