@@ -660,11 +660,25 @@ end
 
 desc "Coverts full upload URLs in `Post#raw` to short upload url"
 task 'posts:inline_uploads' => :environment do |_, args|
-  dry_run = (ENV["DRY_RUN"].nil? ? true : ENV["DRY_RUN"] != "false")
+  if ENV['RAILS_DB']
+    correct_inline_uploads
+  else
+    RailsMultisite::ConnectionManagement.each_connection do |db|
+      puts "Correcting #{db}..."
+      puts
+      correct_inline_uploads
+    end
+  end
+end
 
-  scope = Post.joins(:post_uploads)
-    .distinct("posts.id")
-    .where("raw LIKE '%class=\"attachment%' OR raw LIKE '%<img src=\"%'")
+def correct_inline_uploads
+  dry_run = (ENV["DRY_RUN"].nil? ? true : ENV["DRY_RUN"] != "false")
+  verbose = ENV["VERBOSE"]
+
+  scope = Post.joins(:post_uploads).distinct("posts.id")
+    .where(<<~SQL)
+    raw LIKE '%/uploads/#{RailsMultisite::ConnectionManagement.current_db}/original/%'
+    SQL
 
   affected_posts_count = scope.count
   fixed_count = 0
@@ -681,26 +695,38 @@ task 'posts:inline_uploads' => :environment do |_, args|
       new_raw = InlineUploads.process(post.raw)
 
       if post.raw != new_raw
-        if dry_run
-          putc "🏃‍"
-        else
-          post.revise!(Discourse.system_user,
-            {
-              raw: new_raw
-            },
-            skip_validations: true,
-            force_new_version: true
-          )
+        if !dry_run
+          PostRevisor.new(post, Topic.with_deleted.find_by(id: post.topic_id))
+            .revise!(
+              Discourse.system_user,
+              {
+                raw: new_raw
+              },
+              skip_validations: true,
+              force_new_version: true,
+              bypass_bump: true
+            )
+        end
 
-          putc "."
+        if verbose
+          require 'diffy'
+          Diffy::Diff.default_format = :color
+          puts "Cooked diff for Post #{post.id}"
+          puts Diffy::Diff.new(PrettyText.cook(post.raw), PrettyText.cook(new_raw), context: 1)
+          puts
+        elsif dry_run
+          putc "🏃"
+        else
+          putc "🆗"
         end
 
         fixed_count += 1
       else
+        putc "❌"
         not_corrected_post_ids << post.id
       end
     rescue => e
-      putc "X"
+      putc "🚫"
       failed_to_correct_post_ids << post.id
     end
   end
