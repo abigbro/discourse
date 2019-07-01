@@ -776,6 +776,13 @@ describe Guardian do
         PostActionCreator.create(user, first_post, :off_topic)
         expect(Guardian.new(moderator).can_see?(private_topic)).to be_truthy
       end
+
+      it "allows staff to set banner topics" do
+        topic = Fabricate(:topic)
+
+        expect(Guardian.new(admin).can_banner_topic?(nil)).to be_falsey
+        expect(Guardian.new(admin).can_banner_topic?(topic)).to be_truthy
+      end
     end
 
     describe 'a Post' do
@@ -1419,6 +1426,16 @@ describe Guardian do
         expect(Guardian.new(coding_horror).can_edit?(topic)).to be_falsey
       end
 
+      context "locked" do
+        let(:post) { Fabricate(:post, locked_by_id: admin.id) }
+        let(:topic) { post.topic }
+
+        it "doesn't allow users to edit locked topics" do
+          expect(Guardian.new(topic.user).can_edit?(topic)).to eq(false)
+          expect(Guardian.new(admin).can_edit?(topic)).to eq(true)
+        end
+      end
+
       context 'not archived' do
         it 'returns true as a moderator' do
           expect(Guardian.new(moderator).can_edit?(topic)).to eq(true)
@@ -1648,6 +1665,40 @@ describe Guardian do
       GroupUser.create!(group_id: group.id, user_id: user.id)
       topic.category.update!(reviewable_by_group_id: group.id)
       expect(Guardian.new(user).can_review_topic?(topic)).to eq(true)
+    end
+  end
+
+  context "can_create_topic?" do
+    it 'returns true for staff user' do
+      expect(Guardian.new(moderator).can_create_topic?(topic)).to eq(true)
+    end
+
+    it 'returns false for user with insufficient trust level' do
+      SiteSetting.min_trust_to_create_topic = 3
+      expect(Guardian.new(user).can_create_topic?(topic)).to eq(false)
+    end
+
+    it 'returns true for user with sufficient trust level' do
+      SiteSetting.min_trust_to_create_topic = 3
+      expect(Guardian.new(trust_level_4).can_create_topic?(topic)).to eq(true)
+    end
+
+    it 'returns false when posting in "uncategorized" is disabled and there is no other category available for posting' do
+      SiteSetting.allow_uncategorized_topics = false
+
+      plain_category.set_permissions(group => :readonly)
+      plain_category.save
+      expect(Guardian.new(user).can_create_topic?(topic)).to eq(false)
+    end
+
+    it 'returns true when there is a category available for posting' do
+      SiteSetting.allow_uncategorized_topics = false
+
+      plain_category.set_permissions(group => :full)
+      plain_category.save
+      group.add(user)
+      group.save
+      expect(Guardian.new(user).can_create_topic?(topic)).to eq(true)
     end
   end
 

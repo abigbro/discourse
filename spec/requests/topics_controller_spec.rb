@@ -1762,7 +1762,7 @@ RSpec.describe TopicsController do
       end
 
       it "returns a readonly header if the site is read only" do
-        Discourse.received_readonly!
+        Discourse.received_postgres_readonly!
         get "/t/#{topic.id}.json"
         expect(response.status).to eq(200)
         expect(response.headers['Discourse-Readonly']).to eq('true')
@@ -2037,6 +2037,27 @@ RSpec.describe TopicsController do
       it "requires a type field for the operation param" do
         put "/topics/bulk.json", params: { topic_ids: topic_ids, operation: {} }
         expect(response.status).to eq(400)
+      end
+
+      it "can mark sub-categories unread" do
+        # TODO do we want to skip category definition by default in fabricator
+        category = Fabricate(:category, skip_category_definition: true)
+        sub = Fabricate(:category, parent_category_id: category.id, skip_category_definition: true)
+
+        topic.update!(category_id: sub.id)
+
+        post1 = create_post(user: user, topic_id: topic.id)
+        create_post(topic_id: topic.id)
+
+        put "/topics/bulk.json", params: {
+          category_id: category.id,
+          include_subcategories: true,
+          filter: 'unread',
+          operation: { type: 'dismiss_posts' }
+        }
+
+        expect(response.status).to eq(200)
+        expect(TopicUser.get(post1.topic, post1.user).last_read_post_number).to eq(2)
       end
 
       it "can find unread" do

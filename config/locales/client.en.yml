@@ -868,9 +868,7 @@ en:
       muted_users_instructions: "Suppress all notifications from these users."
       ignored_users: "Ignored"
       ignored_users_instructions: "Suppress all posts and notifications from these users."
-      muted_topics_link: "Show muted topics"
-      watched_topics_link: "Show watched topics"
-      tracked_topics_link: "Show tracked topics"
+      tracked_topics_link: "Show"
       automatically_unpin_topics: "Automatically unpin topics when I reach the bottom."
       apps: "Apps"
       revoke_access: "Revoke Access"
@@ -927,19 +925,19 @@ en:
         disable: "Disable"
         enable: "Enable"
         enable_long: "Enable backup codes"
-        manage: "Manage backup codes"
+        manage: "Manage backup codes. You have <strong>{{count}}</strong> backup codes remaining."
         copied_to_clipboard: "Copied to Clipboard"
         copy_to_clipboard_error: "Error copying data to Clipboard"
         remaining_codes: "You have <strong>{{count}}</strong> backup codes remaining."
         use: "<a href>Use a backup code</a>"
+        enable_prerequisites: "You must enable a primary second factor before generating backup codes."
         codes:
           title: "Backup Codes Generated"
           description: "Each of these backup codes can only be used once. Keep them somewhere safe but accessible."
 
       second_factor:
         title: "Two Factor Authentication"
-        disable: "Disable Two Factor Authentication"
-        enable: "Enable Two Factor Authentication"
+        enable: "Manage Two Factor Authentication"
         confirm_password_description: "Please confirm your password to continue"
         label: "Code"
         rate_limit: "Please wait before trying another authentication code."
@@ -954,6 +952,16 @@ en:
         oauth_enabled_warning: "Please note that social logins will be disabled once two factor authentication has been enabled on your account."
         use: "<a href>Use Authenticator app</a>"
         enforced_notice: "You are required to enable two factor authentication before accessing this site."
+        disable: "disable"
+        disable_title: "Disable Second Factor"
+        disable_confirm: "Are you sure you want to disable all second factors?"
+        edit: "Edit"
+        edit_title: "Edit Second Factor"
+        edit_description: "Second Factor Name"
+        totp:
+          title: "Token-Based Authenticators"
+          add: "New Authenticator"
+          default_name: "My Authenticator"
 
       change_about:
         title: "Change About Me"
@@ -2423,6 +2431,7 @@ en:
         delete_topic: "delete topic"
         add_post_notice: "Add Staff Notice"
         remove_post_notice: "Remove Staff Notice"
+        remove_timer: "remove timer"
 
       actions:
         flag: "Flag"
@@ -2853,6 +2862,7 @@ en:
         up_down: "%{shortcut} Move selection &uarr; &darr;"
         open: "%{shortcut} Open selected topic"
         next_prev: "%{shortcut} Next/previous section"
+        go_to_unread_post: "%{shortcut} Go to the first unread post"
       application:
         title: "Application"
         create: "%{shortcut} Create a new topic"
@@ -2889,6 +2899,7 @@ en:
         mark_tracking: "%{shortcut} Track topic"
         mark_watching: "%{shortcut} Watch topic"
         print: "%{shortcut} Print topic"
+        defer: "%{shortcut} Defer topic"
 
     badges:
       earned_n_times:
@@ -3783,6 +3794,7 @@ en:
             embeddable_host_create: "embeddable host create"
             embeddable_host_update: "embeddable host update"
             embeddable_host_destroy: "embeddable host destroy"
+            change_theme_setting: "change theme setting"
         screened_emails:
           title: "Screened Emails"
           description: "When someone tries to create a new account, the following email addresses will be checked and the registration will be blocked, or some other action performed."
