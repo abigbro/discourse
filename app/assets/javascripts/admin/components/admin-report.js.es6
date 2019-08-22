@@ -55,7 +55,6 @@ export default Ember.Component.extend({
   showTitle: true,
   showFilteringUI: false,
   showDatesOptions: Ember.computed.alias("model.dates_filtering"),
-  showExport: Ember.computed.not("model.isTable"),
   showRefresh: Ember.computed.or(
     "showDatesOptions",
     "model.available_filters.length"
@@ -165,8 +164,8 @@ export default Ember.Component.extend({
     let reportKey = "reports:";
     reportKey += [
       dataSourceName,
-      startDate.replace(/-/g, ""),
-      endDate.replace(/-/g, ""),
+      Ember.testing ? "start" : startDate.replace(/-/g, ""),
+      Ember.testing ? "end" : endDate.replace(/-/g, ""),
       "[:prev_period]",
       this.get("reportOptions.table.limit"),
       customFilters
@@ -184,6 +183,32 @@ export default Ember.Component.extend({
   },
 
   actions: {
+    onChangeEndDate(date) {
+      const startDate = moment(this.startDate);
+      const newEndDate = moment(date).endOf("day");
+
+      if (newEndDate.isSameOrAfter(startDate)) {
+        this.set("endDate", newEndDate.format("YYYY-MM-DD"));
+      } else {
+        this.set("endDate", startDate.endOf("day").format("YYYY-MM-DD"));
+      }
+
+      this.send("refreshReport");
+    },
+
+    onChangeStartDate(date) {
+      const endDate = moment(this.endDate);
+      const newStartDate = moment(date).startOf("day");
+
+      if (newStartDate.isSameOrBefore(endDate)) {
+        this.set("startDate", newStartDate.format("YYYY-MM-DD"));
+      } else {
+        this.set("startDate", endDate.startOf("day").format("YYYY-MM-DD"));
+      }
+
+      this.send("refreshReport");
+    },
+
     applyFilter(id, value) {
       let customFilters = this.get("filters.customFilters") || {};
 

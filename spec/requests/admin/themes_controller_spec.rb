@@ -51,10 +51,10 @@ describe Admin::ThemesController do
       expect(response.status).to eq(200)
 
       # Save the output in a temp file (automatically cleaned up)
-      file = Tempfile.new('archive.tar.gz')
+      file = Tempfile.new('archive.tar.zip')
       file.write(response.body)
       file.rewind
-      uploaded_file = Rack::Test::UploadedFile.new(file.path, "application/x-gzip")
+      uploaded_file = Rack::Test::UploadedFile.new(file.path, "application/zip")
 
       # Now import it again
       expect do
@@ -320,6 +320,65 @@ describe Admin::ThemesController do
       # Database correct
       theme.reload
       expect(theme.theme_translation_overrides.count).to eq(0)
+    end
+
+    it 'can disable component' do
+      child = Fabricate(:theme, component: true)
+
+      put "/admin/themes/#{child.id}.json", params: {
+        theme: {
+          enabled: false
+        }
+      }
+      expect(response.status).to eq(200)
+      json = JSON.parse(response.body)
+      expect(json["theme"]["enabled"]).to eq(false)
+      expect(UserHistory.where(
+        context: child.id.to_s,
+        action: UserHistory.actions[:disable_theme_component]
+      ).size).to eq(1)
+      expect(json["theme"]["disabled_by"]["id"]).to eq(admin.id)
+    end
+
+    it "enabling/disabling a component creates the correct staff action log" do
+      child = Fabricate(:theme, component: true)
+      UserHistory.destroy_all
+
+      put "/admin/themes/#{child.id}.json", params: {
+        theme: {
+          enabled: false
+        }
+      }
+      expect(response.status).to eq(200)
+
+      expect(UserHistory.where(
+        context: child.id.to_s,
+        action: UserHistory.actions[:disable_theme_component]
+      ).size).to eq(1)
+      expect(UserHistory.where(
+        context: child.id.to_s,
+        action: UserHistory.actions[:enable_theme_component]
+      ).size).to eq(0)
+
+      put "/admin/themes/#{child.id}.json", params: {
+        theme: {
+          enabled: true
+        }
+      }
+      expect(response.status).to eq(200)
+      json = JSON.parse(response.body)
+
+      expect(UserHistory.where(
+        context: child.id.to_s,
+        action: UserHistory.actions[:disable_theme_component]
+      ).size).to eq(1)
+      expect(UserHistory.where(
+        context: child.id.to_s,
+        action: UserHistory.actions[:enable_theme_component]
+      ).size).to eq(1)
+
+      expect(json["theme"]["disabled_by"]).to eq(nil)
+      expect(json["theme"]["enabled"]).to eq(true)
     end
 
     it 'handles import errors on update' do

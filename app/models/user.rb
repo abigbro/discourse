@@ -236,6 +236,9 @@ class User < ActiveRecord::Base
     LAST_VISIT = -2
   end
 
+  MAX_SELF_DELETE_POST_COUNT ||= 1
+  MAX_STAFF_DELETE_POST_COUNT ||= 5
+
   def self.max_password_length
     200
   end
@@ -1020,7 +1023,12 @@ class User < ActiveRecord::Base
       .where.not(post_id: disagreed_flag_post_ids)
       .each do |tl|
 
-      message = I18n.t('flag_reason.spam_hosts', domain: tl.domain, base_path: Discourse.base_path)
+      message = I18n.t(
+        'flag_reason.spam_hosts',
+        domain: tl.domain,
+        base_path: Discourse.base_path,
+        locale: SiteSetting.default_locale
+      )
       results << PostActionCreator.create(Discourse.system_user, tl.post, :spam, message: message)
     end
 
@@ -1246,6 +1254,36 @@ class User < ActiveRecord::Base
     Jobs.enqueue(:create_user_reviewable, user_id: self.id)
   end
 
+  def has_more_posts_than?(max_post_count)
+    return true if user_stat && (user_stat.topic_count + user_stat.post_count) > max_post_count
+
+    DB.query_single(<<~SQL, user_id: self.id).first > max_post_count
+      SELECT COUNT(1)
+      FROM (
+        SELECT 1
+        FROM posts p
+               JOIN topics t ON (p.topic_id = t.id)
+        WHERE p.user_id = :user_id AND
+          p.deleted_at IS NULL AND
+          t.deleted_at IS NULL AND
+          (
+            t.archetype <> 'private_message' OR
+              EXISTS(
+                  SELECT 1
+                  FROM topic_allowed_users a
+                  WHERE a.topic_id = t.id AND a.user_id > 0 AND a.user_id <> :user_id
+                ) OR
+              EXISTS(
+                  SELECT 1
+                  FROM topic_allowed_groups g
+                  WHERE g.topic_id = p.topic_id
+                )
+            )
+        LIMIT #{max_post_count + 1}
+      ) x
+    SQL
+  end
+
   protected
 
   def badge_grant
@@ -1375,8 +1413,9 @@ class User < ActiveRecord::Base
     values = []
 
     %w{watching watching_first_post tracking muted}.each do |s|
-      category_ids = SiteSetting.get("default_categories_#{s}").split("|")
+      category_ids = SiteSetting.get("default_categories_#{s}").split("|").map(&:to_i)
       category_ids.each do |category_id|
+        next if category_id == 0
         values << "(#{self.id}, #{category_id}, #{CategoryUser.notification_levels[s.to_sym]})"
       end
     end

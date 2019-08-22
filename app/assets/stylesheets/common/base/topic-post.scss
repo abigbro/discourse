@@ -235,6 +235,8 @@ blockquote {
   // !important here otherwise it won't work.
   img {
     max-width: 100% !important;
+    object-fit: cover;
+    object-position: top;
   }
 }
 
@@ -905,11 +907,12 @@ a.mention-group {
 }
 
 .post-notice {
+  align-items: center;
   background-color: $tertiary-low;
   border-top: 1px solid $primary-low;
-  color: $primary;
-  padding: 0.8em;
+  display: flex;
   max-width: calc(#{$topic-body-width} + #{$topic-avatar-width} - 0.1em);
+  padding: 0.8em;
 
   &.old {
     background-color: unset;
@@ -921,8 +924,6 @@ a.mention-group {
   }
 
   p {
-    display: flex;
-    align-items: center;
     margin: 0;
   }
 
@@ -930,5 +931,14 @@ a.mention-group {
     font-size: 2em;
     color: $primary-high;
     margin-right: 0.65em;
+  }
+}
+
+#topic-footer-buttons {
+  .reason {
+    color: $primary-high;
+    display: inline;
+    margin: 0 0 0 8px;
+    line-height: $line-height-medium;
   }
 }

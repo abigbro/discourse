@@ -62,6 +62,10 @@ describe GroupsController do
     end
 
     context 'sortable' do
+      before do
+        sign_in(user)
+      end
+
       let!(:other_group) { Fabricate(:group, name: "zzzzzz", users: [user]) }
 
       %w{
@@ -126,7 +130,7 @@ describe GroupsController do
       expect(group_ids).to include(group.id)
       expect(group_ids).to_not include(staff_group.id)
       expect(response_body["load_more_groups"]).to eq("/groups?page=1")
-      expect(response_body["total_rows_groups"]).to eq(2)
+      expect(response_body["total_rows_groups"]).to eq(1)
 
       expect(response_body["extras"]["type_filters"].map(&:to_sym)).to eq(
         described_class::TYPE_FILTERS.keys - [:my, :owner, :automatic]
@@ -331,6 +335,15 @@ describe GroupsController do
       expect(response.status).to eq(403)
     end
 
+    it "ensures the group members can be seen" do
+      sign_in(Fabricate(:user))
+      group.update!(members_visibility_level: Group.visibility_levels[:owners])
+
+      get "/groups/#{group.name}/posts.json"
+
+      expect(response.status).to eq(403)
+    end
+
     it "calls `posts_for` and responds with JSON" do
       sign_in(user)
       post = Fabricate(:post, user: user)
@@ -361,6 +374,14 @@ describe GroupsController do
       group.update!(visibility_level: Group.visibility_levels[:owners])
 
       get "/groups/#{group.name}/members.json"
+
+      expect(response.status).to eq(403)
+    end
+
+    it "ensures the group members can be seen" do
+      group.update!(members_visibility_level: Group.visibility_levels[:logged_on_users])
+
+      get "/groups/#{group.name}/members.json", params: { limit: 1 }
 
       expect(response.status).to eq(403)
     end
@@ -609,6 +630,7 @@ describe GroupsController do
       it 'should be able to update the group' do
         group.update!(
           visibility_level: 2,
+          members_visibility_level: 2,
           automatic_membership_retroactive: false,
           grant_trust_level: 0
         )
@@ -622,7 +644,8 @@ describe GroupsController do
             automatic_membership_email_domains: 'test.org',
             automatic_membership_retroactive: true,
             grant_trust_level: 2,
-            visibility_level: 1
+            visibility_level: 1,
+            members_visibility_level: 3
           }
         }
 
@@ -634,6 +657,7 @@ describe GroupsController do
         expect(group.incoming_email).to eq("test@mail.org")
         expect(group.primary_group).to eq(true)
         expect(group.visibility_level).to eq(1)
+        expect(group.members_visibility_level).to eq(3)
         expect(group.automatic_membership_email_domains).to eq('test.org')
         expect(group.automatic_membership_retroactive).to eq(true)
         expect(group.grant_trust_level).to eq(2)
@@ -1347,6 +1371,7 @@ describe GroupsController do
       body = JSON.parse(response.body)
 
       expect(body['relative_url']).to eq(topic.relative_url)
+      expect(post.custom_fields['requested_group_id'].to_i).to eq(group.id)
       expect(post.user).to eq(user)
 
       expect(topic.title).to eq(I18n.t('groups.request_membership_pm.title',
@@ -1371,7 +1396,8 @@ describe GroupsController do
     before do
       group.update!(
         name: 'GOT',
-        full_name: 'Daenerys Targaryen'
+        full_name: 'Daenerys Targaryen',
+        visibility_level: Group.visibility_levels[:logged_on_users]
       )
 
       hidden_group

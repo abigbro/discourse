@@ -441,9 +441,6 @@ nav.post-controls {
 #topic-footer-buttons {
   padding: 10px 10px 0 0;
   float: left;
-  p {
-    color: dark-light-choose($primary-medium, $secondary-medium);
-  }
   .btn {
     @include topic-footer-button;
     .d-icon-bookmark.bookmarked {
@@ -482,6 +479,7 @@ span.post-count {
 
 button.expand-post {
   margin-top: 10px;
+  margin-left: $topic-body-width-padding;
 }
 
 .quote-button.visible {

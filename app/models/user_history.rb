@@ -95,7 +95,9 @@ class UserHistory < ActiveRecord::Base
       embeddable_host_update: 74,
       embeddable_host_destroy: 75,
       web_hook_deactivate: 76,
-      change_theme_setting: 77
+      change_theme_setting: 77,
+      disable_theme_component: 78,
+      enable_theme_component: 79
     )
   end
 
@@ -167,7 +169,9 @@ class UserHistory < ActiveRecord::Base
       :embeddable_host_create,
       :embeddable_host_update,
       :embeddable_host_destroy,
-      :change_theme_setting
+      :change_theme_setting,
+      :disable_theme_component,
+      :enable_theme_component
     ]
   end
 
@@ -218,14 +222,9 @@ class UserHistory < ActiveRecord::Base
       opts[:action_id] = self.actions[opts[:action_name].to_sym] if opts[:action_name]
     end
 
-    page = (opts[:page] || 0).to_i
-    page_size = (opts[:limit] || 200).to_i
-
     query = self
       .with_filters(opts.slice(*staff_filters))
       .only_staff_actions
-      .limit(page_size)
-      .offset(page * page_size)
       .order('id DESC')
       .includes(:acting_user, :target_user)
     query = query.where(admin_only: false) unless viewer && viewer.admin?

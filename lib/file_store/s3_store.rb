@@ -43,6 +43,7 @@ module FileStore
       cache_file(file, File.basename(path)) if opts[:cache_locally]
       options = {
         acl: opts[:private] ? "private" : "public-read",
+        cache_control: 'max-age=31556952, public, immutable',
         content_type: opts[:content_type].presence || MiniMime.lookup_by_filename(filename)&.content_type
       }
       # add a "content disposition" header for "attachments"
@@ -99,15 +100,28 @@ module FileStore
       File.join("uploads", "tombstone", RailsMultisite::ConnectionManagement.current_db, "/")
     end
 
+    def download_url(upload)
+      return unless upload
+      "#{upload.short_path}?dl=1"
+    end
+
     def path_for(upload)
       url = upload&.url
       FileStore::LocalStore.new.path_for(upload) if url && url[/^\/[^\/]/]
     end
 
-    def url_for(upload)
-      if upload.private?
+    def url_for(upload, force_download: false)
+      if upload.private? || force_download
+        opts = { expires_in: S3Helper::DOWNLOAD_URL_EXPIRES_AFTER_SECONDS }
+
+        if force_download
+          opts[:response_content_disposition] = ActionDispatch::Http::ContentDisposition.format(
+            disposition: "attachment", filename: upload.original_filename
+          )
+        end
+
         obj = @s3_helper.object(get_upload_key(upload))
-        url = obj.presigned_url(:get, expires_in: S3Helper::DOWNLOAD_URL_EXPIRES_AFTER_SECONDS)
+        url = obj.presigned_url(:get, opts)
       else
         url = upload.url
       end
@@ -157,6 +171,10 @@ module FileStore
       rescue Aws::S3::Errors::NoSuchKey
         Rails.logger.warn("Could not update ACL on upload with key: '#{key}'. Upload is missing.")
       end
+    end
+
+    def download_file(upload, destination_path)
+      @s3_helper.download_file(get_upload_key(upload), destination_path)
     end
 
     private

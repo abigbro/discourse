@@ -905,7 +905,7 @@ class Post < ActiveRecord::Base
       next unless Discourse.store.has_been_uploaded?(src) || (include_local_upload && src =~ /\A\/[^\/]/i)
 
       path = begin
-        URI(URI.unescape(src))&.path
+        URI(URI.unescape(GlobalSetting.cdn_url ? src.sub(GlobalSetting.cdn_url, "") : src))&.path
       rescue URI::Error
       end
 
@@ -927,7 +927,7 @@ class Post < ActiveRecord::Base
     missing_post_uploads = {}
     count = 0
 
-    DistributedMutex.synchronize("find_missing_uploads") do
+    DistributedMutex.synchronize("find_missing_uploads", validity: 30.minutes) do
       PostCustomField.where(name: Post::MISSING_UPLOADS).delete_all
       query = Post
         .have_uploads
@@ -955,10 +955,7 @@ class Post < ActiveRecord::Base
             upload_id = Upload.where(sha1: sha1).pluck(:id).first if sha1.present?
             upload_id ||= yield(post, src, path, sha1)
 
-            if upload_id.present?
-              attributes = { post_id: post.id, upload_id: upload_id }
-              PostUpload.create!(attributes) unless PostUpload.exists?(attributes)
-            else
+            if upload_id.blank?
               missing_uploads << src
               missing_post_uploads[post.id] << src
             end

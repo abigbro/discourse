@@ -242,8 +242,28 @@ RSpec.describe ListController do
         end
       end
 
+      describe 'group restricted to logged-on-users' do
+        before { group.update!(visibility_level: Group.visibility_levels[:logged_on_users]) }
+
+        it 'should return the right response' do
+          get "/topics/groups/#{group.name}.json"
+
+          expect(response.status).to eq(403)
+        end
+      end
+
       describe 'restricted group' do
         before { group.update!(visibility_level: Group.visibility_levels[:staff]) }
+
+        it 'should return the right response' do
+          get "/topics/groups/#{group.name}.json"
+
+          expect(response.status).to eq(403)
+        end
+      end
+
+      describe 'group members visibility restricted to logged-on-users' do
+        before { group.update!(members_visibility_level: Group.visibility_levels[:logged_on_users]) }
 
         it 'should return the right response' do
           get "/topics/groups/#{group.name}.json"
@@ -263,6 +283,16 @@ RSpec.describe ListController do
           get "/topics/groups/#{group.name}.json"
 
           expect(response.status).to eq(403)
+        end
+      end
+
+      describe 'group restricted to logged-on-users' do
+        before { group.update!(visibility_level: Group.visibility_levels[:logged_on_users]) }
+
+        it 'should return the right response' do
+          get "/topics/groups/#{group.name}.json"
+
+          expect(response.status).to eq(200)
         end
       end
     end
@@ -321,7 +351,7 @@ RSpec.describe ListController do
 
   describe 'category' do
     context 'in a category' do
-      let(:category) { Fabricate(:category) }
+      let(:category) { Fabricate(:category_with_definition) }
       let(:group) { Fabricate(:group) }
       let(:private_category) { Fabricate(:private_category, group: group) }
 
@@ -347,7 +377,7 @@ RSpec.describe ListController do
       end
 
       context 'with a link that has a parent slug, slug and id in its path' do
-        let(:child_category) { Fabricate(:category, parent_category: category) }
+        let(:child_category) { Fabricate(:category_with_definition, parent_category: category) }
 
         context "with valid slug" do
           it "redirects to the child category" do
@@ -370,7 +400,7 @@ RSpec.describe ListController do
 
       context 'another category exists with a number at the beginning of its name' do
         # One category has another category's id at the beginning of its name
-        let!(:other_category) { Fabricate(:category, name: "#{category.id} name") }
+        let!(:other_category) { Fabricate(:category_with_definition, name: "#{category.id} name") }
 
         it 'uses the correct category' do
           get "/c/#{other_category.slug}/l/latest.json"
@@ -382,7 +412,7 @@ RSpec.describe ListController do
       end
 
       context 'a child category' do
-        let(:sub_category) { Fabricate(:category, parent_category_id: category.id) }
+        let(:sub_category) { Fabricate(:category_with_definition, parent_category_id: category.id) }
 
         context 'when parent and child are requested' do
           it "succeeds" do
@@ -461,6 +491,23 @@ RSpec.describe ListController do
           get "/c/#{category.slug}/l/latest"
           expect(response.status).to eq(200)
           expect(css_select("link[rel=canonical]").length).to eq(1)
+        end
+      end
+
+      context "renders correct title" do
+        let!(:amazing_category) { Fabricate(:category_with_definition, name: "Amazing Category") }
+
+        it 'for category default view' do
+          get "/c/#{amazing_category.slug}"
+
+          expect(response.body).to have_tag "title", text: "Amazing Category - Discourse"
+        end
+
+        it 'for category latest view' do
+          SiteSetting.short_site_description = "Best community"
+          get "/c/#{amazing_category.slug}/l/latest"
+
+          expect(response.body).to have_tag "title", text: "Amazing Category - Discourse"
         end
       end
     end
@@ -586,11 +633,11 @@ RSpec.describe ListController do
   end
 
   describe "categories suppression" do
-    let(:category_one) { Fabricate(:category) }
-    let(:sub_category) { Fabricate(:category, parent_category: category_one, suppress_from_latest: true) }
+    let(:category_one) { Fabricate(:category_with_definition) }
+    let(:sub_category) { Fabricate(:category_with_definition, parent_category: category_one, suppress_from_latest: true) }
     let!(:topic_in_sub_category) { Fabricate(:topic, category: sub_category) }
 
-    let(:category_two) { Fabricate(:category, suppress_from_latest: true) }
+    let(:category_two) { Fabricate(:category_with_definition, suppress_from_latest: true) }
     let!(:topic_in_category_two) { Fabricate(:topic, category: category_two) }
 
     it "suppresses categories from the latest list" do
@@ -607,22 +654,6 @@ RSpec.describe ListController do
 
       topic_titles = JSON.parse(response.body)["topic_list"]["topics"].map { |t| t["title"] }
       expect(topic_titles).to include(topic_in_sub_category.title)
-    end
-  end
-
-  describe "safe mode" do
-    it "handles safe mode" do
-      get "/latest"
-      expect(response.body).to match(/plugin\.js/)
-      expect(response.body).to match(/plugin-third-party\.js/)
-
-      get "/latest", params: { safe_mode: "no_plugins" }
-      expect(response.body).not_to match(/plugin\.js/)
-      expect(response.body).not_to match(/plugin-third-party\.js/)
-
-      get "/latest", params: { safe_mode: "only_official" }
-      expect(response.body).to match(/plugin\.js/)
-      expect(response.body).not_to match(/plugin-third-party\.js/)
     end
   end
 end

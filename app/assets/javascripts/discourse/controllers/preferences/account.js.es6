@@ -20,6 +20,7 @@ export default Ember.Controller.extend(
       this._super(...arguments);
 
       this.saveAttrNames = ["name", "title"];
+      this.set("revoking", {});
     },
 
     canEditName: setting("enable_names"),
@@ -31,6 +32,8 @@ export default Ember.Controller.extend(
     passwordProgress: null,
 
     showAllAuthTokens: false,
+
+    revoking: null,
 
     cannotDeleteAccount: Ember.computed.not("currentUser.can_delete_account"),
     deleteDisabled: Ember.computed.or(
@@ -173,7 +176,9 @@ export default Ember.Controller.extend(
               label: I18n.t("cancel"),
               class: "d-modal-cancel",
               link: true,
-              callback: () => this.set("deleting", false)
+              callback: () => {
+                this.set("deleting", false);
+              }
             },
             {
               label:
@@ -200,7 +205,7 @@ export default Ember.Controller.extend(
       },
 
       revokeAccount(account) {
-        this.set("revoking", true);
+        this.set(`revoking.${account.name}`, true);
 
         this.model
           .revokeAssociatedAccount(account.name)
@@ -212,7 +217,7 @@ export default Ember.Controller.extend(
             }
           })
           .catch(popupAjaxError)
-          .finally(() => this.set("revoking", false));
+          .finally(() => this.set(`revoking.${account.name}`, false));
       },
 
       toggleShowAllAuthTokens() {
@@ -228,7 +233,18 @@ export default Ember.Controller.extend(
             type: "POST",
             data: token ? { token_id: token.id } : {}
           }
-        );
+        )
+          .then(() => {
+            if (!token) {
+              const redirect = this.siteSettings.logout_redirect;
+              if (Ember.isEmpty(redirect)) {
+                window.location.pathname = Discourse.getURL("/");
+              } else {
+                window.location.href = redirect;
+              }
+            }
+          })
+          .catch(popupAjaxError);
       },
 
       showToken(token) {

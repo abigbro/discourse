@@ -204,6 +204,28 @@ module Discourse
     plugins.find_all { |p| !p.metadata.official? }
   end
 
+  def self.find_plugins(args)
+    plugins.select do |plugin|
+      next if args[:include_official] == false && plugin.metadata.official?
+      next if args[:include_unofficial] == false && !plugin.metadata.official?
+      next if args[:include_disabled] == false && !plugin.enabled?
+
+      true
+    end
+  end
+
+  def self.find_plugin_css_assets(args)
+    self.find_plugins(args).find_all do |plugin|
+      plugin.css_asset_exists?
+    end.map { |plugin| plugin.directory_name }
+  end
+
+  def self.find_plugin_js_assets(args)
+    self.find_plugins(args).find_all do |plugin|
+      plugin.js_asset_exists?
+    end.map { |plugin| "plugins/#{plugin.directory_name}" }
+  end
+
   def self.assets_digest
     @assets_digest ||= begin
       digest = Digest::MD5.hexdigest(ActionView::Base.assets_manifest.assets.values.sort.join)
@@ -727,5 +749,4 @@ module Discourse
   def self.skip_post_deployment_migrations?
     ['1', 'true'].include?(ENV["SKIP_POST_DEPLOYMENT_MIGRATIONS"]&.to_s)
   end
-
 end

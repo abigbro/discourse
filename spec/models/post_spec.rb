@@ -1020,6 +1020,23 @@ describe Post do
           )
         end
       end
+
+      describe 'when group owner can mention a group' do
+        before do
+          group.update!(mentionable_level: Group::ALIAS_LEVELS[:owners_mods_and_admins])
+          group.add_owner(post.user)
+        end
+
+        it 'should create the mention' do
+          post.update!(raw: "hello @#{group.name}")
+          post.trigger_post_process
+          post.reload
+
+          expect(post.cooked).to eq(
+            %Q|<p>hello <a class="mention-group" href="/groups/#{group.name}">@#{group.name}</a></p>|
+          )
+        end
+      end
     end
   end
 
@@ -1344,15 +1361,42 @@ describe Post do
   end
 
   describe '#each_upload_url' do
-    let(:upload) { Fabricate(:upload_s3) }
-
     it "correctly identifies all upload urls" do
-      urls = []
       upload1 = Fabricate(:upload)
       upload2 = Fabricate(:upload)
-      post = Fabricate(:post, raw: "A post with image and link upload.\n\n![](#{upload1.short_url})\n\n<a href='#{upload2.url}'>Link to upload</a>\n![](http://example.com/external.png)")
-      post.each_upload_url { |src, _, _| urls << src }
-      expect(urls).to eq([upload1.url, upload2.url])
+
+      set_cdn_url "https://awesome.com/somepath"
+
+      post = Fabricate(:post, raw: <<~RAW)
+      A post with image and link upload.
+
+      ![](#{upload1.short_url})
+
+      "#{GlobalSetting.cdn_url}#{upload1.url}"
+
+      <a href='#{Discourse.base_url}#{upload2.url}'>Link to upload</a>
+      ![](http://example.com/external.png)
+      RAW
+
+      urls = []
+      paths = []
+
+      post.each_upload_url do |src, path, _|
+        urls << src
+        paths << path
+      end
+
+      expect(urls).to contain_exactly(
+        upload1.url,
+        "#{GlobalSetting.cdn_url}#{upload1.url}",
+        "#{Discourse.base_url}#{upload2.url}"
+      )
+
+      expect(paths).to contain_exactly(
+        upload1.url,
+        upload1.url,
+        upload2.url
+      )
     end
 
     it "should skip external urls with upload url in query string" do

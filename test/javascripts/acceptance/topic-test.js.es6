@@ -195,7 +195,7 @@ acceptance("Topic featured links", {
 });
 
 QUnit.test("remove featured link", async assert => {
-  await visit("/t/299/1");
+  await visit("/t/-/299/1");
   assert.ok(
     exists(".title-wrapper .topic-featured-link"),
     "link is shown with topic title"
@@ -211,6 +211,20 @@ QUnit.test("remove featured link", async assert => {
   // await click('.title-wrapper .remove-featured-link');
   // await click('.title-wrapper .submit-edit');
   // assert.ok(!exists('.title-wrapper .topic-featured-link'), 'link is gone');
+});
+
+QUnit.test("Converting to a public topic", async assert => {
+  await visit("/t/test-pm/34");
+  assert.ok(exists(".private_message"));
+  await click(".toggle-admin-menu");
+  await click(".topic-admin-convert button");
+
+  let categoryChooser = selectKit(".convert-to-public-topic .category-chooser");
+  await categoryChooser.expand();
+  await categoryChooser.selectRowByValue(21);
+
+  await click(".convert-to-public-topic .btn-primary");
+  assert.ok(!exists(".private_message"));
 });
 
 QUnit.test("Unpinning unlisted topic", async assert => {
@@ -240,13 +254,6 @@ QUnit.test("selecting posts", async assert => {
   assert.ok(
     exists(".select-all"),
     "it should allow users to select all the posts"
-  );
-
-  await click(".toggle-admin-menu");
-
-  assert.ok(
-    exists(".selected-posts.hidden"),
-    "it should hide the multi select menu"
   );
 });
 

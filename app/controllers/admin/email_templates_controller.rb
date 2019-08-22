@@ -22,7 +22,6 @@ class Admin::EmailTemplatesController < Admin::AdminController
       "system_messages.email_reject_auto_generated",
       "system_messages.email_reject_empty",
       "system_messages.email_reject_invalid_access",
-      "system_messages.email_reject_no_account",
       "system_messages.email_reject_parsing",
       "system_messages.email_reject_reply_key",
       "system_messages.email_reject_screened_email",
@@ -108,7 +107,7 @@ class Admin::EmailTemplatesController < Admin::AdminController
   end
 
   def index
-    render_serialized(self.class.email_keys, AdminEmailTemplateSerializer, root: 'email_templates', rest_serializer: true)
+    render_serialized(self.class.email_keys, AdminEmailTemplateSerializer, root: 'email_templates', rest_serializer: true, overridden_keys: overridden_keys)
   end
 
   private
@@ -150,5 +149,9 @@ class Admin::EmailTemplatesController < Admin::AdminController
     attribute = I18n.t("admin_js.admin.customize.email_templates.#{attribute_key}")
     message = update_result[:error_messages].join("<br>")
     I18n.t("errors.format_with_full_message", attribute: attribute, message: message)
+  end
+
+  def overridden_keys
+    TranslationOverride.where(locale: I18n.locale).pluck(:translation_key)
   end
 end

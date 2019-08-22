@@ -178,7 +178,7 @@ registerButton("wiki-edit", attrs => {
       action: "editPost",
       className: "edit create",
       title: "post.controls.edit",
-      icon: "pencil-square-o",
+      icon: "far-edit",
       alwaysShowYours: true
     };
     if (!attrs.mobileView) {
@@ -447,7 +447,7 @@ export default createWidget("post-menu", {
           if (afterButton) {
             content.push(afterButton(h));
           }
-          button = h("span", content);
+          button = h("span.extra-buttons", content);
 
           if (button) {
             switch (position) {
@@ -484,7 +484,14 @@ export default createWidget("post-menu", {
       postControls.push(this.attach("post-admin-menu", attrs));
     }
 
-    const contents = [h("nav.post-controls.clearfix", postControls)];
+    const contents = [
+      h(
+        "nav.post-controls.clearfix" +
+          (this.state.collapsed ? ".collapsed" : ".expanded"),
+        postControls
+      )
+    ];
+
     if (state.likedUsers.length) {
       const remaining = state.total - state.likedUsers.length;
       contents.push(

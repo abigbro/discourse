@@ -18,6 +18,11 @@ class Users::OmniauthCallbacksController < ApplicationController
   # will not have a CSRF token, however the payload is all validated so its safe
   skip_before_action :verify_authenticity_token, only: :complete
 
+  def confirm_request
+    self.class.find_authenticator(params[:provider])
+    render locals: { hide_auth_buttons: true }
+  end
+
   def complete
     auth = request.env["omniauth.auth"]
     raise Discourse::NotFound unless request.env["omniauth.auth"]
@@ -28,20 +33,10 @@ class Users::OmniauthCallbacksController < ApplicationController
     provider = DiscoursePluginRegistry.auth_providers.find { |p| p.name == params[:provider] }
 
     if session.delete(:auth_reconnect) && authenticator.can_connect_existing_user? && current_user
-      # If we're reconnecting, don't actually try and log the user in
-      @auth_result = authenticator.after_authenticate(auth, existing_account: current_user)
-      if provider&.full_screen_login || cookies['fsl']
-        cookies.delete('fsl')
-        DiscourseEvent.trigger(:after_auth, authenticator, @auth_result)
-        return redirect_to Discourse.base_uri("/my/preferences/account")
-      else
-        @auth_result.authenticated = true
-        DiscourseEvent.trigger(:after_auth, authenticator, @auth_result)
-        return respond_to do |format|
-          format.html
-          format.json { render json: @auth_result.to_client_hash }
-        end
-      end
+      # Save to redis, with a secret token, then redirect to confirmation screen
+      token = SecureRandom.hex
+      $redis.setex "#{Users::AssociateAccountsController::REDIS_PREFIX}_#{current_user.id}_#{token}", 10.minutes, auth.to_json
+      return redirect_to Discourse.base_uri("/associate/#{token}")
     else
       @auth_result = authenticator.after_authenticate(auth)
       DiscourseEvent.trigger(:after_auth, authenticator, @auth_result)
@@ -96,7 +91,8 @@ class Users::OmniauthCallbacksController < ApplicationController
   end
 
   def failure
-    flash[:error] = I18n.t("login.omniauth_error")
+    error_key = params[:message].to_s.gsub(/[^\w-]/, "") || "generic"
+    flash[:error] = I18n.t("login.omniauth_error.#{error_key}", default: I18n.t("login.omniauth_error.generic"))
     render 'failure'
   end
 

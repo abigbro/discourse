@@ -28,14 +28,14 @@ class CookedPostProcessor
     @cooking_options = @cooking_options.symbolize_keys
 
     @doc = Nokogiri::HTML::fragment(post.cook(post.raw, @cooking_options))
-    @has_oneboxes = post.post_analyzer.found_oneboxes?
+    @has_oneboxes = @doc.css("aside.onebox").count > 0
     @size_cache = {}
 
     @disable_loading_image = !!opts[:disable_loading_image]
   end
 
   def post_process(bypass_bump: false, new_post: false)
-    DistributedMutex.synchronize("post_process_#{@post.id}") do
+    DistributedMutex.synchronize("post_process_#{@post.id}", validity: 10.minutes) do
       DiscourseEvent.trigger(:before_post_process_cooked, @doc, @post)
       remove_full_quote_on_direct_reply if new_post
       post_process_oneboxes
@@ -382,7 +382,7 @@ class CookedPostProcessor
     a = create_link_node("lightbox", img["src"])
     img.add_next_sibling(a)
 
-    if upload && Discourse.store.internal?
+    if upload
       a["data-download-href"] = Discourse.store.download_url(upload)
     end
 
@@ -506,13 +506,14 @@ class CookedPostProcessor
       map[url] = true
 
       if is_onebox
-        @has_oneboxes = true
-
-        Oneboxer.onebox(url,
+        onebox = Oneboxer.onebox(url,
           invalidate_oneboxes: !!@opts[:invalidate_oneboxes],
           user_id: @post&.user_id,
           category_id: @post&.topic&.category_id
         )
+
+        @has_oneboxes = true if onebox.present?
+        onebox
       else
         process_inline_onebox(element)
         false
@@ -642,6 +643,7 @@ class CookedPostProcessor
   def disable_if_low_on_disk_space
     return false if !SiteSetting.download_remote_images_to_local
     return false if available_disk_space >= SiteSetting.download_remote_images_threshold
+    return false if Discourse.store.external?
 
     SiteSetting.download_remote_images_to_local = false
     # log the site setting change
